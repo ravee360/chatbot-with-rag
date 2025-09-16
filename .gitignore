@@ -1,0 +1,40 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.egg-info/
+*.so
+
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
+ENV/
+*.swp
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+*.ipynb
+
+# OS / IDE junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Databases (auto-created at runtime)
+rag_app.db
+*.sqlite3
+
+# Chroma vector store persistence
+chroma_db/
+
+# Hugging Face Spaces build artifacts
+dist/
+build/
