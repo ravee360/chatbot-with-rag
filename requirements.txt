@@ -11,3 +11,4 @@ uvicorn
 streamlit
 requests
 python-dotenv
+langsmith
