@@ -2,7 +2,6 @@ import os
 import uuid
 import shutil
 import streamlit as st
-from dotenv import load_dotenv
 
 # Internal modules
 from db_utils import (
@@ -17,8 +16,7 @@ from langchain_utils import get_rag_chain
 
 
 # --- Config ---
-load_dotenv()
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
+DEFAULT_MODEL = st.secrets.get("DEFAULT_MODEL", "gpt-4o-mini")
 
 
 # --- Helpers ---
@@ -174,5 +172,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
