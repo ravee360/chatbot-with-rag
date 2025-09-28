@@ -1,9 +1,7 @@
 import os
 import uuid
-import shutil
 import streamlit as st
 
-# Internal modules
 from db_utils import (
     insert_application_logs,
     get_chat_history,
@@ -14,10 +12,8 @@ from db_utils import (
 from chroma_utils import index_document_to_chroma, delete_doc_from_chroma
 from langchain_utils import get_rag_chain
 
-
 # --- Config ---
 DEFAULT_MODEL = st.secrets.get("DEFAULT_MODEL", "gpt-4o-mini")
-
 
 # --- Helpers ---
 def ensure_state():
@@ -27,25 +23,20 @@ def ensure_state():
     st.session_state.setdefault("docs", [])
     st.session_state.setdefault("uploading", False)
 
-
 def refresh_docs():
     try:
         st.session_state.docs = get_all_documents()
     except Exception as e:
         st.sidebar.error(f"List failed: {e}")
 
-
 def handle_upload(file):
-    temp_file_path = f"temp_{file.name}"
+    # Use /tmp for file storage on Streamlit Cloud
+    temp_file_path = os.path.join("/tmp", f"temp_{file.name}")
     try:
         with open(temp_file_path, "wb") as buffer:
             buffer.write(file.getvalue())
 
-        # Metadata (size and type)
-        try:
-            size_bytes = len(file.getvalue())
-        except Exception:
-            size_bytes = None
+        size_bytes = len(file.getvalue())
         content_type = getattr(file, "type", None)
 
         file_id = insert_document_record(file.name, size_bytes, content_type)
@@ -60,7 +51,6 @@ def handle_upload(file):
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
-
 def handle_delete(file_id: int):
     chroma_delete_success = delete_doc_from_chroma(file_id)
     if chroma_delete_success:
@@ -69,7 +59,6 @@ def handle_delete(file_id: int):
             return True, "Deleted"
         return False, "Deleted from Chroma but failed to delete from DB"
     return False, "Failed to delete from Chroma"
-
 
 # --- Sidebar ---
 def sidebar():
@@ -84,13 +73,13 @@ def sidebar():
             st.session_state.uploading = True
             try:
                 message, _ = handle_upload(file)
-                st.success(message)
+                st.toast(message, icon="✅")
                 refresh_docs()
                 st.session_state.uploading = False
                 st.rerun()
             except Exception as e:
                 st.session_state.uploading = False
-                st.error(f"Upload failed: {e}")
+                st.toast(f"Upload failed: {e}", icon="❌")
 
     if st.sidebar.button("Refresh list"):
         refresh_docs()
@@ -109,20 +98,21 @@ def sidebar():
             try:
                 ok, msg = handle_delete(doc_map[to_delete])
                 if ok:
-                    st.sidebar.success("Deleted")
+                    st.toast("Deleted", icon="✅")
                 else:
-                    st.sidebar.error(msg)
+                    st.toast(msg, icon="❌")
                 refresh_docs()
                 st.rerun()
             except Exception as e:
-                st.sidebar.error(f"Delete failed: {e}")
+                st.toast(f"Delete failed: {e}", icon="❌")
     else:
         st.sidebar.info("No documents uploaded yet.")
-
 
 # --- Chat UI ---
 def chat_ui():
     st.title("💬 LangChain RAG Chatbot")
+    st.caption("Note: Uploaded files and chat history are not persistent on Streamlit Community Cloud.")
+
     if st.session_state.uploading:
         st.info("Uploading…")
 
@@ -161,7 +151,6 @@ def chat_ui():
             st.session_state.messages.append(("assistant", f"Error: {e}"))
         st.rerun()
 
-
 # --- Main ---
 def main():
     st.set_page_config(page_title="RAG App", page_icon="📚", layout="wide")
@@ -169,6 +158,8 @@ def main():
     sidebar()
     chat_ui()
 
-
 if __name__ == "__main__":
+    # Check for required secrets
+    if "DEFAULT_MODEL" not in st.secrets:
+        st.warning("DEFAULT_MODEL not set in Streamlit secrets. Using fallback.")
     main()
